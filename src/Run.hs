@@ -1,5 +1,7 @@
-{-# LANGUAGE CPP #-}
-{-# LANGUAGE LambdaCase #-}
+{-# LANGUAGE CPP            #-}
+{-# LANGUAGE ImplicitParams #-}
+{-# LANGUAGE LambdaCase     #-}
+
 module Run (
   doctest
 , doctestWithRepl
