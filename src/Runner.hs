@@ -1,5 +1,7 @@
-{-# LANGUAGE CPP #-}
-{-# LANGUAGE LambdaCase #-}
+{-# LANGUAGE CPP            #-}
+{-# LANGUAGE ImplicitParams #-}
+{-# LANGUAGE LambdaCase     #-}
+
 module Runner (
   runModules
 , FastMode(..)
@@ -33,7 +35,7 @@ import qualified Control.Monad.Trans.State as State
 import           Control.Monad.IO.Class
 import           Data.IORef
 
-import           Interpreter (Interpreter, PreserveIt(..), safeEvalWith)
+import           Interpreter (Interpreter, PreserveIt(..), safeEvalWith')
 import qualified Interpreter
 import           Parse
 import           Location
@@ -93,6 +95,9 @@ runModules fastMode preserveIt failFast verbose repl modules = withLineBuffering
     run :: IO ()
     run = runReport (ReportState interactive failFast verbose summary) $ do
       reportProgress
+      let ?verbose = case verbose of
+            Verbose    -> True
+            NonVerbose -> False
       forM_ modules $ runModule fastMode preserveIt repl
       verboseReport "# Final summary:"
 
@@ -149,7 +154,7 @@ reportTransient msg = gets reportStateInteractive >>= \ case
     hPutStr stderr $ '\r' : (replicate (length msg) ' ') ++ "\r"
 
 -- | Run all examples from given module.
-runModule :: FastMode -> PreserveIt -> Interpreter -> Module [Located DocTest] -> Report ()
+runModule :: (?verbose :: Bool) => FastMode -> PreserveIt -> Interpreter -> Module [Located DocTest] -> Report ()
 runModule fastMode preserveIt repl (Module module_ setup examples) = do
 
   Summary _ _ e0 f0 <- getSummary
@@ -184,7 +189,7 @@ runModule fastMode preserveIt repl (Module module_ setup examples) = do
       reload
       forM_ setup $ \l -> forM_ l $ \(Located _ x) -> case x of
         Property _  -> return ()
-        Example e _ -> void $ safeEvalWith preserveIt repl e
+        Example e _ -> void $ safeEvalWith' ?verbose preserveIt repl e
 
 reportStart :: Location -> Expression -> String -> Report ()
 reportStart loc expression testType = do
@@ -237,7 +242,7 @@ reportProgress = gets reportStateVerbose >>= \ case
 --
 -- The interpreter state is zeroed with @:reload@ first.  This means that you
 -- can reuse the same 'Interpreter' for several test groups.
-runTestGroup :: PreserveIt -> Interpreter -> IO () -> [Located DocTest] -> Report ()
+runTestGroup :: (?verbose :: Bool) => PreserveIt -> Interpreter -> IO () -> [Located DocTest] -> Report ()
 runTestGroup preserveIt repl setup tests = do
   liftIO setup
   runExampleGroup preserveIt repl examples
@@ -250,7 +255,7 @@ runTestGroup preserveIt repl setup tests = do
     case r of
       Success ->
         reportSuccess
-      Error err -> do
+      Error err ->
         reportError loc expression err
       Failure msg -> do
         reportFailure loc expression [msg]
@@ -265,14 +270,14 @@ type Interaction = (Expression, ExpectedResult)
 -- |
 -- Execute all expressions from given example in given 'Interpreter' and verify
 -- the output.
-runExampleGroup :: PreserveIt -> Interpreter -> [Located Interaction] -> Report ()
+runExampleGroup :: (?verbose :: Bool) => PreserveIt -> Interpreter -> [Located Interaction] -> Report ()
 runExampleGroup preserveIt repl = go
   where
     go ((Located loc (expression, expected)) : xs) = do
       reportStart loc expression "example"
-      r <- fmap lines <$> liftIO (safeEvalWith preserveIt repl expression)
+      r <- fmap lines <$> liftIO (safeEvalWith' ?verbose preserveIt repl expression)
       case r of
-        Left err -> do
+        Left err ->
           reportError loc expression err
         Right actual -> case mkResult expected actual of
           NotEqual err -> do

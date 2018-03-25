@@ -4,6 +4,7 @@ module Interpreter (
 , PreserveIt(..)
 , safeEval
 , safeEvalWith
+, safeEvalWith'
 , withInterpreter
 , ghc
 , interpreterSupported
@@ -69,7 +70,10 @@ safeEval :: Interpreter -> String -> IO (Either String String)
 safeEval = safeEvalWith NoPreserveIt
 
 safeEvalWith :: PreserveIt -> Interpreter -> String -> IO (Either String String)
-safeEvalWith preserveIt repl = either (return . Left) (fmap Right . evalWith preserveIt repl) . filterExpression
+safeEvalWith = safeEvalWith' False
+
+safeEvalWith' :: Bool -> PreserveIt -> Interpreter -> String -> IO (Either String String)
+safeEvalWith' verbose preserveIt repl = either (return . Left) (fmap Right . evalWith' verbose preserveIt repl) . filterExpression
 
 filterExpression :: String -> Either String String
 filterExpression e =

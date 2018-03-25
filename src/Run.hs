@@ -1,4 +1,6 @@
-{-# LANGUAGE CPP #-}
+{-# LANGUAGE CPP            #-}
+{-# LANGUAGE ImplicitParams #-}
+
 module Run (
   doctest
 , doctestWithRepl

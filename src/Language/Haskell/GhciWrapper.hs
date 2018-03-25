@@ -8,12 +8,14 @@ module Language.Haskell.GhciWrapper (
 , close
 , eval
 , evalWith
+, evalWith'
 , evalEcho
 ) where
 
 import           Imports
 
 import           System.IO hiding (stdin, stdout, stderr)
+import qualified System.IO
 import           System.Process
 import           System.Exit
 import           Data.List (isSuffixOf)
@@ -149,9 +151,18 @@ eval = evalWith NoPreserveIt
 
 -- | Like 'eval', but try to preserve the @it@ variable
 evalWith :: PreserveIt -> Interpreter -> String -> IO String
-evalWith preserveIt repl expr = do
+evalWith = evalWith' False
+
+-- | Like 'eval', but try to preserve the @it@ variable
+evalWith' :: Bool -> PreserveIt -> Interpreter -> String -> IO String
+evalWith' verbose preserveIt repl expr = do
   putExpression repl preserveIt expr
-  getResult False repl
+  res <- getResult False repl
+  when verbose $ do
+    putStrLn $ "> " ++ expr
+    putStrLn $ "< " ++ res
+  hFlush System.IO.stdout
+  pure res
 
 -- | Evaluate an expression
 evalEcho :: Interpreter -> String -> IO String
