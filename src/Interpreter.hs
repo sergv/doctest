@@ -3,6 +3,7 @@
 module Interpreter (
   Interpreter
 , safeEval
+, safeEval'
 , safeEvalIt
 , withInterpreter
 , ghc
@@ -69,7 +70,10 @@ xTemplateHaskell = "-XTemplateHaskell"
 --
 -- An exception may e.g. be caused on unterminated multiline expressions.
 safeEval :: Interpreter -> String -> IO (Either String String)
-safeEval repl = either (return . Left) (fmap Right . eval repl) . filterExpression
+safeEval = safeEval' False
+
+safeEval' :: Bool -> Interpreter -> String -> IO (Either String String)
+safeEval' verbose repl = either (return . Left) (fmap Right . eval' verbose repl) . filterExpression
 
 safeEvalIt :: Interpreter -> String -> IO (Either String String)
 safeEvalIt repl = either (return . Left) (fmap Right . evalIt repl) . filterExpression

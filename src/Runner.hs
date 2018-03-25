@@ -1,4 +1,6 @@
-{-# LANGUAGE CPP #-}
+{-# LANGUAGE CPP            #-}
+{-# LANGUAGE ImplicitParams #-}
+
 module Runner (
   runModules
 , Summary(..)
@@ -30,10 +32,10 @@ import           Runner.Example
 
 -- | Summary of a test run.
 data Summary = Summary {
-  sExamples :: Int
-, sTried    :: Int
-, sErrors   :: Int
-, sFailures :: Int
+  sExamples :: !Int
+, sTried    :: !Int
+, sErrors   :: !Int
+, sFailures :: !Int
 } deriving Eq
 
 -- | Format a summary.
@@ -58,6 +60,7 @@ runModules :: Bool -> Bool -> Bool -> Interpreter -> [Module [Located DocTest]] 
 runModules fastMode preserveIt verbose repl modules = do
   isInteractive <- hIsTerminalDevice stderr
   ReportState _ _ _ s <- (`execStateT` ReportState 0 isInteractive verbose mempty {sExamples = c}) $ do
+    let ?verbose = verbose
     forM_ modules $ runModule fastMode preserveIt repl
 
     verboseReport "# Final summary:"
@@ -110,7 +113,7 @@ overwrite msg = do
   liftIO (hPutStr stderr str)
 
 -- | Run all examples from given module.
-runModule :: Bool -> Bool -> Interpreter -> Module [Located DocTest] -> Report ()
+runModule :: (?verbose :: Bool) => Bool -> Bool -> Interpreter -> Module [Located DocTest] -> Report ()
 runModule fastMode preserveIt repl (Module module_ setup examples) = do
 
   Summary _ _ e0 f0 <- gets reportStateSummary
@@ -189,7 +192,7 @@ reportProgress = do
 --
 -- The interpreter state is zeroed with @:reload@ first.  This means that you
 -- can reuse the same 'Interpreter' for several test groups.
-runTestGroup :: Bool -> Interpreter -> IO () -> [Located DocTest] -> Report ()
+runTestGroup :: (?verbose :: Bool) => Bool -> Interpreter -> IO () -> [Located DocTest] -> Report ()
 runTestGroup preserveIt repl setup tests = do
 
   reportProgress
@@ -205,7 +208,7 @@ runTestGroup preserveIt repl setup tests = do
     case r of
       Success ->
         reportSuccess
-      Error err -> do
+      Error err ->
         reportError loc expression err
       Failure msg -> do
         reportFailure loc expression [msg]
@@ -218,14 +221,14 @@ runTestGroup preserveIt repl setup tests = do
 -- |
 -- Execute all expressions from given example in given 'Interpreter' and verify
 -- the output.
-runExampleGroup :: Bool -> Interpreter -> [Located Interaction] -> Report ()
+runExampleGroup :: (?verbose :: Bool) => Bool -> Interpreter -> [Located Interaction] -> Report ()
 runExampleGroup preserveIt repl = go
   where
     go ((Located loc (expression, expected)) : xs) = do
       reportStart loc expression "example"
       r <- fmap lines <$> liftIO (safeEvalWith preserveIt repl expression)
       case r of
-        Left err -> do
+        Left err ->
           reportError loc expression err
         Right actual -> case mkResult expected actual of
           NotEqual err -> do
@@ -235,7 +238,7 @@ runExampleGroup preserveIt repl = go
             go xs
     go [] = return ()
 
-safeEvalWith :: Bool -> Interpreter -> String -> IO (Either String String)
+safeEvalWith :: (?verbose :: Bool) => Bool -> Interpreter -> String -> IO (Either String String)
 safeEvalWith preserveIt
   | preserveIt = Interpreter.safeEvalIt
-  | otherwise  = Interpreter.safeEval
+  | otherwise  = Interpreter.safeEval' ?verbose

@@ -6,11 +6,13 @@ module Language.Haskell.GhciWrapper (
 , new
 , close
 , eval
+, eval'
 , evalIt
 , evalEcho
 ) where
 
 import           System.IO hiding (stdin, stdout, stderr)
+import qualified System.IO
 import           System.Process
 import           System.Exit
 import           Control.Monad
@@ -142,9 +144,18 @@ getResult echoMode Interpreter{hOut = stdout} = go
 
 -- | Evaluate an expression
 eval :: Interpreter -> String -> IO String
-eval repl expr = do
+eval = eval' False
+
+-- | Evaluate an expression
+eval' :: Bool -> Interpreter -> String -> IO String
+eval' verbose repl expr = do
   putExpression repl False expr
-  getResult False repl
+  res <- getResult False repl
+  when verbose $ do
+    putStrLn $ "> " ++ expr
+    putStrLn $ "< " ++ res
+  hFlush System.IO.stdout
+  pure res
 
 -- | Like 'eval', but try to preserve the @it@ variable
 evalIt :: Interpreter -> String -> IO String
