@@ -63,9 +63,9 @@ new Config{..} args_ = do
   setMode stdin_
   setMode stdout_
   let interpreter = Interpreter {hIn = stdin_, hOut = stdout_, process = processHandle}
-  evalThrow interpreter "import qualified System.IO"
-  evalThrow interpreter "import qualified GHC.IO.Encoding"
-  evalThrow interpreter "import qualified GHC.IO.Handle"
+  evalThrow interpreter "import System.IO qualified"
+  evalThrow interpreter "import GHC.IO.Encoding qualified"
+  evalThrow interpreter "import GHC.IO.Handle qualified"
   -- The buffering of stdout and stderr is NoBuffering
   evalThrow interpreter "GHC.IO.Handle.hDuplicateTo System.IO.stdout System.IO.stderr"
   -- Now the buffering of stderr is BlockBuffering Nothing
