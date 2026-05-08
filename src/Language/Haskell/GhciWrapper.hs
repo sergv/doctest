@@ -88,6 +88,8 @@ new Config{..} args_ = do
     args = args_ ++ catMaybes [
         if configIgnoreDotGhci then Just "-ignore-dot-ghci" else Nothing
       , if configVerbose then Nothing else Just "-v0"
+      ] ++
+      [ "-Wno-missing-export-lists"
       ]
     setMode h = do
       hSetBinaryMode h False
