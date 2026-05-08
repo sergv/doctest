@@ -40,9 +40,9 @@ import           Panic
 import           GHC.Utils.Panic
 #endif
 
-#if __GLASGOW_HASKELL__ < 904
+-- #if __GLASGOW_HASKELL__ < 904
 import           GhcUtil (expandUnits)
-#endif
+-- #endif
 
 import           PackageDBs
 import           Parse
@@ -74,7 +74,7 @@ doctestWithRepl :: (String, [String]) -> [String] -> IO ()
 -- we want to expand early, so that GHCi gets expanded args.
 doctestWithRepl repl = expandUnits >=> parseOptions >>> \ case
 #else
-doctestWithRepl repl = parseOptions >>> \ case
+doctestWithRepl repl = expandUnits >=> parseOptions >>> \ case
 #endif
   Options.ProxyToGhc args -> exec Interpreter.ghc args
   Options.Output s -> putStr s
