@@ -200,7 +200,7 @@ executable doctest
   main-is: driver/doctest.hs
   other-modules:
       Paths_doctest
-  ghc-options: -Wall -threaded
+  ghc-options: -Wall -threaded -rtsopts
   default-extensions:
       NamedFieldPuns
       RecordWildCards
